@@ -1,4 +1,4 @@
-import Link from "next/link";
+import PageNav from "@/components/layout/PageNav";
 
 const SPECS = [
   { label: "Board",    value: "Arduino Leonardo" },
@@ -43,12 +43,7 @@ export default function DevicePage() {
   return (
     <div className="flex flex-col min-h-screen bg-zinc-950 font-mono text-zinc-100">
 
-      {/* Nav */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
-        <Link href="/" className="text-green-500 font-bold text-lg hover:text-green-400 transition-colors">N*</Link>
-        <span className="text-zinc-400 text-xs tracking-widest uppercase">Device</span>
-        <Link href="/settings" className="text-zinc-500 hover:text-zinc-300 text-xs transition-colors">← Settings</Link>
-      </div>
+      <PageNav subtitle="// device" />
 
       <div className="max-w-xl mx-auto w-full px-6 py-10 flex flex-col gap-8">
 

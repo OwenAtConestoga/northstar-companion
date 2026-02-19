@@ -1,4 +1,5 @@
 import Link from "next/link";
+import PageNav from "@/components/layout/PageNav";
 
 const FAQS = [
   {
@@ -91,22 +92,7 @@ const FAQS = [
 export default function FAQPage() {
   return (
     <div className="flex flex-col min-h-screen bg-zinc-950 font-mono text-zinc-100">
-      {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800 flex-shrink-0">
-        <Link href="/" className="text-green-500 font-bold text-lg hover:text-green-400 transition-colors">
-          N*
-        </Link>
-        <div className="text-center">
-          <p className="text-zinc-100 font-mono text-xs tracking-wider">NorthStar Companion</p>
-          <p className="text-zinc-400 font-mono text-xs">// FAQ &amp; Documentation</p>
-        </div>
-        <Link
-          href="/vault"
-          className="border border-zinc-700 hover:border-zinc-500 text-zinc-400 hover:text-zinc-200 font-mono text-xs px-3 py-1.5 rounded transition-colors"
-        >
-          ← Vault
-        </Link>
-      </div>
+      <PageNav subtitle="// faq & docs" />
 
       {/* Content */}
       <div className="flex-1 max-w-2xl mx-auto w-full px-6 py-8 space-y-10">
