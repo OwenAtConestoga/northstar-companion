@@ -34,6 +34,11 @@ export default function CredentialList({ credentials, onEdit, onDelete, lastSync
         <p className="text-zinc-500 font-mono text-xs flex-shrink-0">
           {filtered.length}{search ? `/${credentials.length}` : ""} credential{credentials.length !== 1 ? "s" : ""}
         </p>
+        {lastSyncAt && (
+          <p className="text-zinc-600 font-mono text-xs flex-shrink-0 border-l border-zinc-700 pl-3">
+            last synced <span className="text-zinc-400">{new Date(lastSyncAt).toLocaleDateString("en-CA")}</span>
+          </p>
+        )}
       </div>
 
       {credentials.length === 0 && (
