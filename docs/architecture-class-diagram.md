@@ -1,16 +1,16 @@
-# NorthStar Companion — Architecture Class Diagram
+# NorthStar — Class Diagrams
 
-> Generated from source. All paths are relative to `src/`.
+Two diagrams: the **companion web app** and the **physical device firmware**.
+
+---
+
+## 1 — Companion Web App
 
 ```mermaid
 classDiagram
 
-    %% ════════════════════════════════════════════════════════════
-    %% DATA TYPES
-    %% ════════════════════════════════════════════════════════════
-
+    %% ── Core Data ───────────────────────────────────────────────
     class Credential {
-        <<interface>>
         +id: string
         +serviceName: string
         +username: string
@@ -19,318 +19,174 @@ classDiagram
         +createdAt: string
     }
 
-    class SyncPhase {
-        <<enumeration>>
-        idle
-        encrypting
-        sending
-        done
-        error
-    }
-
     class SyncState {
-        <<interface>>
-        +phase: SyncPhase
+        +phase: idle|encrypting|sending|done|error
         +progress: number
         +statusLine: string
         +error?: string
     }
 
     class LastSync {
-        <<interface>>
         +at: string
         +count: number
     }
 
-    class VaultStatus {
-        <<enumeration>>
-        loading
-        new
-        locked
-        unlocked
-    }
-
-    class StoredVault {
-        <<interface>>
-        +salt: string
-        +payload: string
-    }
-
-    class SessionData {
-        <<interface>>
-        +keyB64: string
-        +expiresAt: number
-    }
-
-    %% ════════════════════════════════════════════════════════════
-    %% BROWSER APIs  (external)
-    %% ════════════════════════════════════════════════════════════
-
-    class WebCryptoAPI {
-        <<browser API>>
-        +subtle.importKey()
-        +subtle.deriveKey()
-        +subtle.encrypt()
-        +subtle.decrypt()
-        +subtle.exportKey()
-        +getRandomValues()
-    }
-
-    class WebSerialAPI {
-        <<browser API>>
-        +requestPort(filters)
-        +getPorts()
-        +open(baudRate)
-        +close()
-        +readable: ReadableStream
-        +writable: WritableStream
-    }
-
-    class BrowserStorage {
-        <<browser API>>
-        +localStorage.getItem()
-        +localStorage.setItem()
-        +localStorage.removeItem()
-        +sessionStorage.getItem()
-        +sessionStorage.setItem()
-        +sessionStorage.removeItem()
-    }
-
-    %% ════════════════════════════════════════════════════════════
-    %% HOOKS
-    %% ════════════════════════════════════════════════════════════
-
+    %% ── Hooks (business logic) ──────────────────────────────────
     class useVaultStorage {
         <<hook>>
-        -keyRef: CryptoKey
-        -saltRef: Uint8Array
-        +status: VaultStatus
-        +credentials: Credential[]
-        +unlockError: string | null
-        +createVault(password) void
-        +unlock(password) void
-        +saveCredentials(creds) void
-        +lock() void
-        +wipeVault() void
+        status: loading|new|locked|unlocked
+        credentials: Credential[]
+        unlockError: string
+        ---
+        createVault(password)
+        unlock(password)
+        saveCredentials(creds)
+        lock()
+        wipeVault()
     }
 
     class useSerialDevice {
         <<hook>>
-        -portRef: NSASerialPort
-        -writerRef: WritableStreamDefaultWriter
-        -msgQueueRef: Array
-        +isSupported: boolean
-        +isConnected: boolean
-        +isPaired: boolean
-        +syncState: SyncState
-        +lastSync: LastSync | null
-        +deviceSelectedIdx: number | null
-        +connect() void
-        +disconnect() void
-        +syncCredentials(creds) void
-        +resetSync() void
-        +clearDeviceSelect() void
+        isSupported: boolean
+        isConnected: boolean
+        isPaired: boolean
+        syncState: SyncState
+        lastSync: LastSync
+        deviceSelectedIdx: number
+        ---
+        connect()
+        disconnect()
+        syncCredentials(creds)
+        resetSync()
+        clearDeviceSelect()
     }
 
-    class useLCDSimulator {
-        <<hook>>
-        +screen: MenuScreen
-        +cursor: number
-        +line1: string
-        +line2: string
-        +canUp: boolean
-        +canDown: boolean
-        +canBack: boolean
-        +canSelect: boolean
-        +isTyping: boolean
-        +pressUp() void
-        +pressDown() void
-        +pressBack() void
-        +pressSelect() void
+    %% ── Pages ───────────────────────────────────────────────────
+    class VaultPage {
+        <<page  /vault>>
+        isTransferring: boolean
+        isAddingNew: boolean
+        editingCredential: Credential
+        selectedCredential: Credential
+        ---
+        handleAdd()
+        handleDelete()
+        handleEditSave()
+        handleInitiateSync()
     }
-
-    %% ════════════════════════════════════════════════════════════
-    %% PAGES  (Next.js App Router)
-    %% ════════════════════════════════════════════════════════════
 
     class WelcomePage {
-        <<page>>
-        route: /
+        <<page  />>
     }
 
-    class VaultPage {
-        <<page>>
-        route: /vault
-        -isTransferring: boolean
-        -isAddingNew: boolean
-        -editingCredential: Credential | null
-        -selectedCredential: Credential | null
-        +handleAdd(cred) void
-        +handleDelete(id) void
-        +handleEditSave(cred) void
-        +handleInitiateSync() void
-    }
-
-    class DevicePage {
-        <<page>>
-        route: /device
-    }
-
-    class SettingsPage {
-        <<page>>
-        route: /settings
-    }
-
-    class FAQPage {
-        <<page>>
-        route: /faq
-    }
-
-    %% ════════════════════════════════════════════════════════════
-    %% LAYOUT COMPONENTS
-    %% ════════════════════════════════════════════════════════════
-
+    %% ── Layout ──────────────────────────────────────────────────
     class Dashboard {
         <<component>>
-        +credentials: Credential[]
-        +isConnected: boolean
-        +isPaired: boolean
-        +isSupported: boolean
-        +lastSync: LastSync | null
-        +onInitiateSync() void
-        +onAddNew() void
-        +onEdit(id) void
-        +onDelete(id) void
-        +onConnect() void
-        +onDisconnect() void
-        +onLock() void
+        Composes the full vault view
+        ---
+        TopBar
+        CredentialList
+        BottomActionBar
+        DevicePanel
     }
 
     class TopBar {
         <<component>>
-        +isConnected: boolean
-        +isPaired: boolean
-        +isSupported: boolean
-        +onConnect() void
-        +onDisconnect() void
-        +onLock() void
+        Device status badge
+        Lock button
+        Nav links
     }
 
     class BottomActionBar {
         <<component>>
-        +deviceConnected: boolean
-        +devicePaired: boolean
-        +onInitiateSync() void
-        +onAddNew() void
+        INITIATE SECURE SYNC button
+        + Add New button
     }
 
-    class PageNav {
-        <<component>>
-    }
-
-    %% ════════════════════════════════════════════════════════════
-    %% VAULT COMPONENTS
-    %% ════════════════════════════════════════════════════════════
-
+    %% ── Vault UI ────────────────────────────────────────────────
     class CredentialList {
         <<component>>
-        +credentials: Credential[]
-        +lastSyncAt?: string
-        +onEdit(id) void
-        +onDelete(id) void
+        Search filter
+        Renders CredentialCard list
     }
 
     class CredentialCard {
         <<component>>
-        +id: string
-        +serviceName: string
-        +username: string
-        +icon: string
-        +createdAt: string
-        +lastSyncAt?: string
-        +onEdit(id) void
-        +onDelete(id) void
+        serviceName / username / icon
+        Edit · Delete actions
+        Sync status dot
     }
 
     class AddCredentialModal {
         <<component>>
-        +initialValues?: Partial~Credential~
-        +onAdd(cred) void
-        +onCancel() void
+        Create or edit a credential
+        Icon picker
     }
 
-    %% ════════════════════════════════════════════════════════════
-    %% AUTH COMPONENTS
-    %% ════════════════════════════════════════════════════════════
-
+    %% ── Auth ────────────────────────────────────────────────────
     class UnlockScreen {
         <<component>>
-        +mode: new | locked
-        +error: string | null
-        +onSubmit(password) void
+        mode: new | locked
+        PBKDF2 password entry
+        CREATE VAULT / UNLOCK
     }
 
-    %% ════════════════════════════════════════════════════════════
-    %% DEVICE COMPONENTS
-    %% ════════════════════════════════════════════════════════════
-
+    %% ── Device UI ───────────────────────────────────────────────
     class DevicePanel {
         <<component>>
-        +credentials: Credential[]
-        +isConnected: boolean
-        +isPaired: boolean
-        +lastSync: LastSync | null
-        +onConnect() void
-        +onSync() void
+        LCD 16x2 simulator
+        UP / DOWN / BACK / SELECT buttons
+        EEPROM slot usage bar
+        Sync status + SYNC NOW
     }
 
     class TransferModal {
         <<component>>
-        +syncState: SyncState
-        +onClose() void
+        Chunked transfer progress
+        ProgressRing
+        Phase: encrypting → sending → done
     }
 
     class PasswordReadyModal {
         <<component>>
-        +credential: Credential
-        +onDismiss() void
+        Shown on device SELECT event
+        COPY PASSWORD button
+        30-second auto-dismiss
     }
 
-    %% ════════════════════════════════════════════════════════════
-    %% UI COMPONENTS
-    %% ════════════════════════════════════════════════════════════
+    %% ── Relationships ───────────────────────────────────────────
+    useVaultStorage "1" --> "*" Credential : stores in AES-256-GCM vault
+    useSerialDevice --> SyncState : tracks
+    useSerialDevice --> LastSync : persists
+    useSerialDevice --> Credential : syncs over USB serial
 
-    class ProgressRing {
-        <<component>>
-        +progress: number
-    }
+    VaultPage --> useVaultStorage : uses
+    VaultPage --> useSerialDevice : uses
+    VaultPage --> Dashboard : renders (when unlocked)
+    VaultPage --> UnlockScreen : renders (when locked / new)
+    VaultPage --> TransferModal : renders during sync
+    VaultPage --> AddCredentialModal : renders add / edit
+    VaultPage --> PasswordReadyModal : renders on device SELECT
 
-    %% ════════════════════════════════════════════════════════════
-    %% PHYSICAL DEVICE FIRMWARE  (arduino/firmware/)
-    %% ════════════════════════════════════════════════════════════
+    Dashboard *-- TopBar
+    Dashboard *-- CredentialList
+    Dashboard *-- BottomActionBar
+    Dashboard *-- DevicePanel
 
-    class NorthStarHID {
-        <<firmware — ATmega32U4>>
-        board: Arduino Leonardo
-        -entryNames: char[][]
-        -entryPwds: char[][]
-        -entryCount: int
-        -currentState: MenuState
-        -cursor: int
-        +setup() void
-        +loop() void
-        +processLine(line) void
-        +selectOption() void
-        +moveCursor(dir) void
-        +goBack() void
-        +loadEntries() void
-        +saveEntry(idx, name, pwd) void
-        +clearEntries() void
-        +sendPair() void
-        +sendAck() void
-        +Keyboard.print(pwd) void
-    }
+    CredentialList *-- CredentialCard
+    TransferModal --> SyncState
+```
 
+---
+
+## 2 — Physical Device Firmware (`northstar_hid.ino`)
+
+Board: **Arduino Leonardo — ATmega32U4**
+
+```mermaid
+classDiagram
+
+    %% ── State machine ───────────────────────────────────────────
     class MenuState {
         <<enumeration>>
         S_PAIRING
@@ -346,106 +202,113 @@ classDiagram
         S_SYNC_DONE
     }
 
-    %% ════════════════════════════════════════════════════════════
-    %% RELATIONSHIPS
-    %% ════════════════════════════════════════════════════════════
+    %% ── Main firmware ───────────────────────────────────────────
+    class NorthStarHID {
+        <<Arduino sketch>>
+        currentState: MenuState
+        cursor: int
+        entryCount: int
+        entryNames[20][16]: char
+        entryPwds[20][33]: char
+        ---
+        setup()
+        loop()
+        updateDisplay()
+        selectOption()
+        moveCursor(dir)
+        goBack()
+    }
 
-    %% Type dependencies
-    SyncState --> SyncPhase : phase is
-    useVaultStorage --> VaultStatus : has status
-    useVaultStorage --> StoredVault : serializes to/from
-    useVaultStorage --> SessionData : caches key in
-    useSerialDevice --> SyncState : tracks
-    useSerialDevice --> LastSync : tracks
+    %% ── Subsystems ──────────────────────────────────────────────
+    class EEPROMStore {
+        <<1 KB storage>>
+        magic[2]: 0xAB 0xCD
+        count[1]: byte
+        entries[20 x 50B]
+        ---
+        loadEntries()
+        saveEntry(idx, name, pwd)
+        clearEntries()
+        hasValidData()
+    }
 
-    %% Hook → Browser API
-    useVaultStorage --> WebCryptoAPI : PBKDF2 + AES-256-GCM
-    useVaultStorage --> BrowserStorage : vault + session
-    useSerialDevice --> WebSerialAPI : USB serial port
-    useSerialDevice --> BrowserStorage : persists lastSync
+    class SerialProtocol {
+        <<9600 baud JSON>>
+        inputBuffer: String
+        payloadBuffer: String
+        receiving: boolean
+        expectedLen: int
+        ---
+        processLine(line)
+        processCommand(cmd)
+        extractAndStore()
+        sendPair()
+        sendAck()
+    }
 
-    %% Hook → Type
-    useVaultStorage "1" --> "*" Credential : stores
-    useSerialDevice --> Credential : syncs to device
+    class ButtonHandler {
+        <<INPUT_PULLUP>>
+        BTN_UP    = pin 6
+        BTN_DOWN  = pin 7
+        BTN_BACK  = pin 8
+        BTN_SELECT = pin 9
+        debounce: 200 ms
+        ---
+        btnPressed(pin, idx)
+    }
 
-    %% VaultPage — main orchestrator
-    VaultPage --> useVaultStorage : uses
-    VaultPage --> useSerialDevice : uses
-    VaultPage --> Dashboard : renders
-    VaultPage --> UnlockScreen : renders when locked/new
-    VaultPage --> TransferModal : renders when syncing
-    VaultPage --> AddCredentialModal : renders when adding/editing
-    VaultPage --> PasswordReadyModal : renders on device SELECT
+    class LCDDisplay {
+        <<LCD 16x2 parallel>>
+        RS=12  E=11
+        D4=5 D5=4 D6=3 D7=2
+        ---
+        lcdRow(row, text)
+        lcdHeader(title, back, fwd)
+        lcdItem(item, selected)
+    }
 
-    %% Dashboard composition
-    Dashboard *-- TopBar : contains
-    Dashboard *-- CredentialList : contains
-    Dashboard *-- BottomActionBar : contains
-    Dashboard *-- DevicePanel : contains
+    class USBKeyboard {
+        <<USB HID — no drivers>>
+        Keyboard.print(pwd)
+        Keyboard.releaseAll()
+        3-second countdown
+        then types password
+    }
 
-    %% List → Card
-    CredentialList "1" *-- "*" CredentialCard : renders
-
-    %% DevicePanel internals
-    DevicePanel --> useLCDSimulator : uses
-    DevicePanel --> LastSync : reads
-    DevicePanel --> Credential : displays
-
-    %% TransferModal
-    TransferModal --> SyncState : reads
-    TransferModal --> ProgressRing : uses
-
-    %% Firmware
+    %% ── Relationships ───────────────────────────────────────────
     NorthStarHID --> MenuState : state machine
-    NorthStarHID --> WebSerialAPI : USB CDC serial (host side)
-    useSerialDevice --> NorthStarHID : protocol partner
+    NorthStarHID --> EEPROMStore : load / save credentials
+    NorthStarHID --> SerialProtocol : receive sync from app
+    NorthStarHID --> ButtonHandler : UP / DOWN / BACK / SELECT
+    NorthStarHID --> LCDDisplay : render current screen
+    NorthStarHID --> USBKeyboard : type password on SELECT
 
-    %% Device / Settings / FAQ pages use PageNav
-    DevicePage --> PageNav : uses
-    SettingsPage --> PageNav : uses
-    FAQPage --> PageNav : uses
+    SerialProtocol --> EEPROMStore : writes after END cmd
 ```
 
 ---
 
-## Serial Protocol Summary (Web App ↔ Firmware)
+## How the two systems connect
 
 ```
-Companion App                         NorthStar Device (Leonardo)
-─────────────────────────────────────────────────────────────────
-                         ← {"event":"PAIR"}        (on boot / REQUEST_KEY)
-{"cmd":"PAIR_ACK"}       →
-{"cmd":"BEGIN","count":N,"len":B} →
-                         ← {"ack":1}
-<48-byte JSON chunk>\n   →            (repeated per chunk)
-                         ← {"ack":1}              (per chunk)
-{"cmd":"END"}            →
-                         ← {"ack":1}              (after EEPROM write)
+Companion App (browser)          NorthStar Device (Leonardo)
+────────────────────────         ──────────────────────────────
+useSerialDevice hook       USB   SerialProtocol subsystem
+  Web Serial API        ◄─────►  9600 baud JSON lines
+  chunked 48-byte send            ACK each chunk
+  syncCredentials()               extractAndStore() → EEPROM
 
-During standalone use:
-                         ← {"event":"SELECT","idx":N}   (user presses SELECT on device)
+                                 Standalone (no app needed):
+                                  ButtonHandler → USBKeyboard
+                                  plug into any PC, type pwd
 ```
 
-## EEPROM Layout (northstar_hid — 1 KB)
-
-| Address | Size | Field |
-|---------|------|-------|
-| 0–1 | 2 B | Magic bytes `0xAB 0xCD` |
-| 2 | 1 B | Entry count |
-| 3 | 1 B | Reserved |
-| 4 + (i × 50) | 50 B | Entry i: `[valid(1)][name(16)][pwd(33)]` |
-
-Max 20 entries × 50 bytes = 1000 bytes ≤ 1 KB EEPROM.
-
-## Key Files
-
-| Path | Purpose |
-|------|---------|
-| `src/types/credential.ts` | `Credential` interface + icon options |
-| `src/hooks/useVaultStorage.ts` | PBKDF2 key derivation, AES-256-GCM vault, session cache |
-| `src/hooks/useSerialDevice.ts` | Web Serial API, chunked sync protocol, lastSync |
-| `src/app/vault/page.tsx` | Main orchestrator — composes all hooks + modals |
-| `src/components/layout/Dashboard.tsx` | Layout shell for the vault view |
-| `src/components/device/DevicePanel.tsx` | LCD simulator + device status sidebar |
-| `arduino/firmware/northstar_hid/northstar_hid.ino` | Leonardo HID firmware — types passwords |
-| `arduino/firmware/northstar_device/northstar_device.ino` | Uno firmware — clipboard-mode variant |
+| Sync command | Direction | Meaning |
+|---|---|---|
+| `{"event":"PAIR"}` | Device → App | Ready / announce |
+| `{"cmd":"PAIR_ACK"}` | App → Device | Acknowledged |
+| `{"cmd":"BEGIN","len":N}` | App → Device | Start transfer |
+| `<48-byte chunk>` | App → Device | Payload chunk |
+| `{"ack":1}` | Device → App | Chunk received |
+| `{"cmd":"END"}` | App → Device | Write to EEPROM |
+| `{"event":"SELECT","idx":N}` | Device → App | User picked account |
